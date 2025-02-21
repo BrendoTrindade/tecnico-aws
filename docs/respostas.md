@@ -14,7 +14,7 @@ Este projeto atende aos requisitos solicitados:
    - Documentei cada recurso criado
 
 3. **Documentação e GitHub:**
-   - Projeto no GitHub: [https://github.com/BrendoTrindade/tecnico-aws](https://github.com/BrendoTrindade/tecnico-aws)
+   - Projeto no GitHub: [https://github.com/BrendoTrindade/tecinico-aws](https://github.com/BrendoTrindade/tecinico-aws)
    - Instruções de uso neste README
    - Código comentado para fácil entendimento
 
