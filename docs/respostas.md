@@ -170,33 +170,83 @@ jobs:
             --version-label ${{ github.sha }}
 ```
 
-## 6. Segurança S3
+## 6. Segurança no S3
 
-Configurei o bucket para ser seguro:
+Para garantir que apenas usuários autorizados acessem os dados no S3, implementaria estas práticas:
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::123456789012:user/app-user"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject"
-            ],
-            "Resource": "arn:aws:s3:::meus-arquivos-app/*"
-        }
-    ]
-}
-```
+1. **Bloqueio de Acesso Público:**
+   - Habilitar "Block Public Access" no nível do bucket
+   - Impedir qualquer acesso público, mesmo que acidental
+   - Exemplo de configuração:
+   ```json
+   {
+       "Version": "2012-10-17",
+       "Statement": [
+           {
+               "Sid": "BlockPublicAccess",
+               "Effect": "Deny",
+               "Principal": "*",
+               "Action": "s3:*",
+               "Resource": [
+                   "arn:aws:s3:::meu-bucket/*",
+                   "arn:aws:s3:::meu-bucket"
+               ],
+               "Condition": {
+                   "Bool": {
+                       "aws:SecureTransport": "false"
+                   }
+               }
+           }
+       ]
+   }
+   ```
 
-Também:
-- Bloqueei acesso público
-- Ativei criptografia
-- Ativei logs de acesso
+2. **Controle de Acesso com IAM:**
+   - Criar grupos específicos (ex: "developers", "readonly")
+   - Atribuir permissões mínimas necessárias
+   - Usar roles temporárias quando possível
+   - Exemplo de política IAM:
+   ```json
+   {
+       "Version": "2012-10-17",
+       "Statement": [
+           {
+               "Effect": "Allow",
+               "Action": [
+                   "s3:GetObject",
+                   "s3:ListBucket"
+               ],
+               "Resource": [
+                   "arn:aws:s3:::meu-bucket",
+                   "arn:aws:s3:::meu-bucket/*"
+               ],
+               "Condition": {
+                   "StringEquals": {
+                       "aws:PrincipalTag/Department": "IT"
+                   }
+               }
+           }
+       ]
+   }
+   ```
+
+3. **Criptografia:**
+   - Habilitar criptografia em repouso (SSE-S3 ou KMS)
+   - Forçar conexões HTTPS (TLS)
+   - Usar chaves gerenciadas pelo cliente quando necessário
+
+4. **Monitoramento:**
+   - Ativar logs de acesso ao bucket
+   - Configurar CloudTrail para auditoria
+   - Criar alertas para acessos suspeitos
+
+5. **Boas Práticas Adicionais:**
+   - Usar VPC Endpoints para acesso interno
+   - Implementar versionamento de objetos
+   - Configurar lifecycle policies
+   - Fazer backup regular dos dados críticos
+
+Estas práticas em conjunto criam múltiplas camadas de segurança, garantindo que apenas usuários autorizados acessem os dados e que todas as ações sejam registradas para auditoria.
 
 ## 7. Otimização de Performance
 
