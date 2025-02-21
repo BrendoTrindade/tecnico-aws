@@ -172,40 +172,17 @@ jobs:
 
 ## 6. Segurança no S3
 
-Para garantir que apenas usuários autorizados acessem os dados no S3, implementaria estas práticas:
+Para garantir a segurança dos dados no S3, implementaria:
 
 1. **Bloqueio de Acesso Público:**
-   - Habilitar "Block Public Access" no nível do bucket
-   - Impedir qualquer acesso público, mesmo que acidental
-   - Exemplo de configuração:
-   ```json
-   {
-       "Version": "2012-10-17",
-       "Statement": [
-           {
-               "Sid": "BlockPublicAccess",
-               "Effect": "Deny",
-               "Principal": "*",
-               "Action": "s3:*",
-               "Resource": [
-                   "arn:aws:s3:::meu-bucket/*",
-                   "arn:aws:s3:::meu-bucket"
-               ],
-               "Condition": {
-                   "Bool": {
-                       "aws:SecureTransport": "false"
-                   }
-               }
-           }
-       ]
-   }
-   ```
+   - Habilitar "Block Public Access"
+   - Negar acesso não autenticado
+   - Forçar uso de HTTPS
 
-2. **Controle de Acesso com IAM:**
-   - Criar grupos específicos (ex: "developers", "readonly")
-   - Atribuir permissões mínimas necessárias
-   - Usar roles temporárias quando possível
-   - Exemplo de política IAM:
+2. **Controle de Acesso:**
+   - Criar grupos (devops, dev, prod)
+   - Usar política de menor privilégio
+   - Exemplo de política básica:
    ```json
    {
        "Version": "2012-10-17",
@@ -217,36 +194,17 @@ Para garantir que apenas usuários autorizados acessem os dados no S3, implement
                    "s3:ListBucket"
                ],
                "Resource": [
-                   "arn:aws:s3:::meu-bucket",
                    "arn:aws:s3:::meu-bucket/*"
-               ],
-               "Condition": {
-                   "StringEquals": {
-                       "aws:PrincipalTag/Department": "IT"
-                   }
-               }
+               ]
            }
        ]
    }
    ```
 
-3. **Criptografia:**
-   - Habilitar criptografia em repouso (SSE-S3 ou KMS)
-   - Forçar conexões HTTPS (TLS)
-   - Usar chaves gerenciadas pelo cliente quando necessário
-
-4. **Monitoramento:**
-   - Ativar logs de acesso ao bucket
-   - Configurar CloudTrail para auditoria
-   - Criar alertas para acessos suspeitos
-
-5. **Boas Práticas Adicionais:**
-   - Usar VPC Endpoints para acesso interno
-   - Implementar versionamento de objetos
-   - Configurar lifecycle policies
-   - Fazer backup regular dos dados críticos
-
-Estas práticas em conjunto criam múltiplas camadas de segurança, garantindo que apenas usuários autorizados acessem os dados e que todas as ações sejam registradas para auditoria.
+3. **Segurança Adicional:**
+   - Ativar criptografia
+   - Habilitar logs de acesso
+   - Usar VPC Endpoints
 
 ## 7. Otimização de Performance
 
