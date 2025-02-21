@@ -130,45 +130,66 @@ Criei alertas para:
 - Memória acima de 90%
 - Erros no Apache
 
-## 5. Pipeline CI/CD
+## 5. Integração e Entrega Contínua (CI/CD)
 
-Fiz um pipeline com GitHub Actions:
+Criei um pipeline básico usando GitHub Actions para automatizar o deploy de uma aplicação. O pipeline faz:
 
+1. **Quando é Executado:**
+   - A cada push na branch main
+   - Quando abre um Pull Request
+
+2. **O Que o Pipeline Faz:**
+   - Instala as dependências
+   - Roda os testes básicos
+   - Faz o deploy se estiver tudo ok
+
+Exemplo do arquivo de pipeline (.github/workflows/main.yml):
 ```yaml
-name: Deploy
+name: Pipeline Básico
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v2
-      
-      - name: Setup Node
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-      
-      - name: Instalar e Testar
-        run: |
-          npm install
-          npm test
-      
-      - name: Build
-        run: |
-          npm run build
-          zip -r app.zip dist/
+    - name: Checkout do código
+      uses: actions/checkout@v2
 
-      - name: Deploy
-        run: |
-          aws s3 cp app.zip s3://meu-bucket/
-          aws elasticbeanstalk create-application-version \
-            --application-name minha-app \
-            --version-label ${{ github.sha }}
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Instalar dependências
+      run: npm install
+
+    - name: Rodar testes
+      run: npm test
+
+    - name: Deploy para produção
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Fazendo deploy..."
+        # Aqui vai o comando de deploy
 ```
+
+3. **Como Funciona:**
+   - Desenvolvedor faz push do código
+   - GitHub Actions executa os passos
+   - Se passar nos testes, faz deploy
+   - Se falhar, notifica o time
+
+4. **Benefícios:**
+   - Testes automáticos
+   - Deploy mais seguro
+   - Menos erros em produção
+   - Feedback rápido
 
 ## 6. Segurança no S3
 
