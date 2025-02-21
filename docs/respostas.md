@@ -14,7 +14,7 @@ Este projeto atende aos requisitos solicitados:
    - Documentei cada recurso criado
 
 3. **Documentação e GitHub:**
-   - Projeto no GitHub: [https://github.com/BrendoTrindade/tecinico-aws](https://github.com/BrendoTrindade/tecinico-aws)
+   - Projeto no GitHub: [https://github.com/BrendoTrindade/tecinico-aws](https://github.com/BrendoTrindade/tecnico-aws)
    - Instruções de uso neste README
    - Código comentado para fácil entendimento
 
@@ -76,11 +76,6 @@ resource "aws_lb" "balanceador" {
   subnets           = [aws_subnet.public[0].id, aws_subnet.public[1].id]
 }
 ```
-
-Escolhi usar Terraform porque:
-- É mais fácil de aprender
-- Tem boa documentação
-- Muita gente usa, então é fácil achar ajuda
 
 ## 3. Continuidade de Negócio
 
@@ -205,22 +200,33 @@ Também:
 
 ## 7. Otimização de Performance
 
-Para melhorar a performance:
+Para otimizar a performance de uma aplicação web com milhares de acessos simultâneos, podemos configurar:
 
-1. Cache:
-   - CloudFront para arquivos estáticos
-   - Redis para sessões
-   - Cache no navegador
+1. **Sistema de Cache:**
+   - Implementar Redis como cache distribuído
+   - Configurar clusters do Redis para alta disponibilidade
+   - Definir políticas de cache para diferentes tipos de dados
 
-2. Arquivos Estáticos:
-   - Coloquei no S3
-   - Distribuo pelo CloudFront
-   - Comprimi os arquivos grandes
+2. **Armazenamento Estático:**
+   - Utilizar Amazon S3 para armazenamento
+   - Configurar CloudFront como CDN
+   - Implementar políticas de lifecycle no S3
 
-3. Banco de Dados:
-   - Criei índices nas tabelas principais
-   - Configurei um read replica
-   - Monitoro queries lentas
+3. **Infraestrutura de Distribuição:**
+   - Configurar Load Balancer (ELB)
+   - Implementar Auto Scaling Groups
+   - Distribuir em múltiplas Availability Zones
+
+4. **Banco de Dados:**
+   - Configurar Read Replicas para leitura
+   - Implementar cache no nível do banco
+   - Utilizar RDS Multi-AZ para alta disponibilidade
+
+Estas configurações permitem:
+- Alta disponibilidade
+- Melhor distribuição de carga
+- Escalabilidade automática
+- Recuperação rápida de dados
 
 ## 8. Resolução de Problemas
 
