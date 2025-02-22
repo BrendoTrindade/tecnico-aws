@@ -6,8 +6,8 @@ variable "aws_region" {
 }
 
 # IP para acesso SSH
-variable "ip_acesso" {
-  description = "IP permitido para acesso SSH"
+variable "meu_ip" {
+  description = "Meu IP para acesso SSH"
   type        = string
 }
 
@@ -29,8 +29,15 @@ variable "db_password" {
   sensitive   = true
 }
 
+# CIDR da rede corporativa
+variable "rede_empresa" {
+  description = "CIDR da rede da empresa para acesso HTTP"
+  type        = string
+}
+
 # Nome do bucket S3
 variable "bucket_name" {
-  description = "Nome do bucket S3 para armazenamento"
+  description = "Nome do bucket S3"
   type        = string
+  default     = "app-files"
 }

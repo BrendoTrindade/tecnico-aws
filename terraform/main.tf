@@ -1,36 +1,36 @@
 # Configuração AWS
 provider "aws" {
-  region = var.aws_region
+  region = "us-east-1"  # Região com menor latência para Brasil
 }
 
-# VPC
+# VPC para isolar os recursos
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "10.0.0.0/16"  # Rede privada
   
   tags = {
     Name = "app-vpc"
   }
 }
 
-# Security Group - EC2
+# Security Group para EC2 - Controla acesso
 resource "aws_security_group" "app" {
   name   = "app-sg"
   vpc_id = aws_vpc.main.id
 
-  # SSH
+  # Permite SSH apenas do meu IP
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${var.ip_acesso}/32"]
+    cidr_blocks = ["${var.meu_ip}/32"]
   }
 
-  # HTTP
+  # Permite HTTP apenas da rede da empresa
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["${var.rede_empresa}"]
   }
 
   egress {
@@ -62,10 +62,10 @@ resource "aws_security_group" "db" {
   }
 }
 
-# EC2
+# EC2 - Servidor da Aplicação
 resource "aws_instance" "app" {
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t2.micro"
+  ami           = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2
+  instance_type = "t2.micro"               # Free tier
   
   vpc_security_group_ids = [aws_security_group.app.id]
   key_name              = var.key_name
@@ -75,15 +75,16 @@ resource "aws_instance" "app" {
   }
 }
 
-# RDS
+# RDS - Banco de Dados MySQL
 resource "aws_db_instance" "db" {
   engine               = "mysql"
-  instance_class       = "db.t3.micro"
+  instance_class       = "db.t3.micro"     # Free tier
   allocated_storage    = 20
   username            = var.db_user
   password            = var.db_password
   skip_final_snapshot = true
 
+  # Acesso apenas pela EC2
   vpc_security_group_ids = [aws_security_group.db.id]
 
   tags = {
@@ -91,7 +92,7 @@ resource "aws_db_instance" "db" {
   }
 }
 
-# S3
+# S3 - Armazenamento
 resource "aws_s3_bucket" "files" {
   bucket = var.bucket_name
 

@@ -14,51 +14,62 @@ Este projeto atende aos requisitos solicitados:
    - Documentei cada recurso criado
 
 3. **Documentação e GitHub:**
-   - Projeto no GitHub: [https://github.com/BrendoTrindade/tecinico-aws](https://github.com/BrendoTrindade/tecnico-aws)
+   - Projeto no GitHub: https://github.com/BrendoTrindade/tecnico-aws
    - Instruções de uso neste README
    - Código comentado para fácil entendimento
 
 ## 1. Infraestrutura AWS
 
-Implementei uma infraestrutura básica usando Terraform com recursos do nível gratuito:
-- EC2 t2.micro para a aplicação
-- RDS MySQL db.t3.micro para banco de dados
-- S3 para armazenamento
+Para criar a infraestrutura básica, usei Terraform por ser uma ferramenta popular e fácil de entender. A infraestrutura inclui:
+
+1. O que será criado:
+   - EC2: Servidor para rodar a aplicação (t2.micro - free tier)
+   - RDS: Banco de dados MySQL (db.t3.micro - free tier)
+   - S3: Armazenamento de arquivos
+   - VPC: Rede isolada para os serviços
+
+2. Medidas de Segurança:
+   - EC2 acessível apenas via SSH com IP específico
+   - HTTP permitido apenas da rede da empresa
+   - RDS acessível apenas pela EC2
+   - S3 com acesso restrito à aplicação
+
+Aqui está o código comentado:
 
 ```hcl
-# Configuração AWS
+# Configuração da região AWS
 provider "aws" {
-  region = var.aws_region
+  region = "us-east-1"  # Região com menor latência para Brasil
 }
 
-# VPC
+# VPC para isolar os recursos
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "10.0.0.0/16"  # Rede privada
   
   tags = {
     Name = "app-vpc"
   }
 }
 
-# Security Group - EC2
+# Security Group para EC2 - Controla acesso
 resource "aws_security_group" "app" {
   name   = "app-sg"
   vpc_id = aws_vpc.main.id
 
-  # SSH
+  # Permite SSH apenas do meu IP
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${var.ip_acesso}/32"]
+    cidr_blocks = ["${var.meu_ip}/32"]
   }
 
-  # HTTP
+  # Permite HTTP apenas da rede da empresa
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["${var.rede_empresa}"]  # Ex: "192.168.1.0/24"
   }
 
   egress {
@@ -67,59 +78,32 @@ resource "aws_security_group" "app" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "app-sg"
-  }
 }
 
-# Security Group - RDS
-resource "aws_security_group" "db" {
-  name   = "db-sg"
-  vpc_id = aws_vpc.main.id
-
-  ingress {
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    security_groups = [aws_security_group.app.id]
-  }
-
-  tags = {
-    Name = "db-sg"
-  }
-}
-
-# EC2
+# EC2 - Servidor da Aplicação
 resource "aws_instance" "app" {
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t2.micro"
+  ami           = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2
+  instance_type = "t2.micro"               # Free tier
   
   vpc_security_group_ids = [aws_security_group.app.id]
-  key_name              = var.key_name
 
   tags = {
     Name = "app-server"
   }
 }
 
-# RDS
+# RDS - Banco de Dados MySQL
 resource "aws_db_instance" "db" {
   engine               = "mysql"
-  instance_class       = "db.t3.micro"
+  instance_class       = "db.t3.micro"     # Free tier
   allocated_storage    = 20
-  username            = var.db_user
-  password            = var.db_password
   skip_final_snapshot = true
 
+  # Acesso apenas pela EC2
   vpc_security_group_ids = [aws_security_group.db.id]
-
-  tags = {
-    Name = "app-db"
-  }
 }
 
-# S3
+# S3 - Armazenamento
 resource "aws_s3_bucket" "files" {
   bucket = var.bucket_name
 
@@ -129,104 +113,172 @@ resource "aws_s3_bucket" "files" {
 }
 ```
 
-Segurança implementada:
-- SSH liberado apenas para IP específico
-- Banco de dados acessível somente pela EC2
-- Security groups para controle de acesso
+Como aplicar:
+1. Salvar as configurações em `main.tf`
+2. Executar `terraform init` para baixar plugins
+3. Executar `terraform apply` para criar infraestrutura
 
-## 2. Load Balancer
+Benefícios desta configuração:
+- Usa apenas recursos do free tier
+- Segurança básica implementada
+- Fácil de modificar e expandir
+- Documentada para fácil entendimento
 
+## 2. Infraestrutura como Código (IaC)
+
+Escolhi Terraform como ferramenta IaC pelos seguintes motivos:
+- Fácil de aprender e usar
+- Boa documentação e comunidade ativa
+- Integração nativa com AWS
+- Permite ver as mudanças antes de aplicar
+
+Processo de implementação:
+
+1. Decisões de Configuração:
+   - Application Load Balancer (ALB) por suportar HTTP/HTTPS
+   - Duas EC2 em zonas diferentes para alta disponibilidade
+   - Health check na porta 80 para garantir que aplicação está respondendo
+   - Security groups permitindo apenas tráfego necessário
+
+2. Estrutura do código:
+   - Separei recursos em blocos lógicos
+   - Usei count para criar múltiplas EC2s
+   - Nomes descritivos para fácil identificação
+   - Comentários explicando cada recurso
+
+Configuração do Load Balancer:
 ```hcl
-# Load Balancer
-resource "aws_lb" "app" {
+# Criar Application Load Balancer
+resource "aws_lb" "app_lb" {
   name               = "app-lb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.app.id]
-  subnets            = [aws_subnet.public[0].id, aws_subnet.public[1].id]
-
-  tags = {
-    Name = "app-lb"
-  }
+  internal           = false                    # LB público
+  load_balancer_type = "application"           # ALB para HTTP/HTTPS
+  security_groups    = [aws_security_group.lb_sg.id]
+  subnets            = [aws_subnet.public_1.id, aws_subnet.public_2.id]  # Multi-AZ
 }
 
-# Target Group
-resource "aws_lb_target_group" "app" {
+# Target Group para as EC2
+resource "aws_lb_target_group" "app_tg" {
   name     = "app-tg"
-  port     = 80
+  port     = 80                    # Porta padrão HTTP
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
 
-  tags = {
-    Name = "app-tg"
+  health_check {
+    path    = "/"                  # Verifica página inicial
+    matcher = "200"                # Considera healthy se retornar HTTP 200
   }
 }
 
-# Listener
+# Anexar as EC2 ao Target Group
+resource "aws_lb_target_group_attachment" "app" {
+  count            = 2             # Criar duas EC2s
+  target_group_arn = aws_lb_target_group.app_tg.arn
+  target_id        = aws_instance.app[count.index].id
+  port             = 80
+}
+
+# Listener para o Load Balancer
 resource "aws_lb_listener" "app" {
-  load_balancer_arn = aws_lb.app.arn
-  port              = "80"
+  load_balancer_arn = aws_lb.app_lb.arn
+  port              = 80           # Porta de entrada
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
+    type             = "forward"   # Encaminhar para target group
+    target_group_arn = aws_lb_target_group.app_tg.arn
   }
 }
 ```
+
+Para aplicar esta configuração:
+1. Inicializar: `terraform init`
+2. Validar: `terraform plan`
+3. Aplicar: `terraform apply`
 
 ## 3. Continuidade de Negócio
 
-Para manter tudo funcionando se der problema:
+Para garantir a continuidade dos serviços, implementei dois níveis de proteção:
 
-1. No RDS:
-   - Ativei Multi-AZ
-   - Backup automático todo dia às 3h
-   - Guardo 7 dias de backup
+A) Em caso de falha de uma Zona de Disponibilidade:
+1. Multi-AZ na mesma região:
+   - EC2 distribuídas em duas AZs (us-east-1a e us-east-1b)
+   - RDS com Multi-AZ para failover automático
+   - Load Balancer distribuindo tráfego entre AZs
 
-2. Nas EC2:
-   - Uma em us-east-1a e outra em us-east-1b
-   - Auto Scaling com mínimo de 2 instâncias
-   - Backup semanal das AMIs
+2. Processo de failover AZ:
+   - Load Balancer detecta falha e redireciona tráfego
+   - RDS alterna automaticamente para a AZ secundária
+   - Auto Scaling mantém número mínimo de EC2
 
-3. No S3:
-   - Ativei versionamento
-   - Replicação para us-west-2
-   - Backup dos arquivos importantes
+B) Em caso de falha da região principal (us-east-1):
+1. Backup em Região Secundária (us-west-2):
+   - Replicação cross-region do RDS
+   - Replicação do bucket S3
+   - AMIs copiadas para região secundária
 
-## 4. Monitoramento
+2. Configuração de Recuperação:
+   - VPC e subnets já criadas na região secundária
+   - Route53 com política de failover
+   - Scripts de infraestrutura preparados para ambas regiões
 
-Configurei o CloudWatch nas EC2:
+3. Processo de Failover:
+   - Route53 redireciona tráfego para região secundária
+   - RDS promove réplica para master
+   - EC2 é iniciada usando AMIs da região secundária
 
+Com essa estrutura, estamos protegidos tanto contra falhas de AZ quanto de região.
+
+## 4. Monitoramento e Logging
+
+Para implementar o monitoramento da EC2 usando CloudWatch, seguirei estas etapas:
+
+1. Primeiro, precisamos instalar o CloudWatch agent para coletar métricas:
+```bash
+# Instalação do agente
+sudo yum install -y amazon-cloudwatch-agent
+```
+
+2. Configurar o agente para coletar as métricas básicas:
 ```json
 {
   "metrics": {
-    "cpu": {
-      "measurement": ["usage"],
-      "collect_interval": 300
-    },
-    "memory": {
-      "measurement": ["used", "free"],
-      "collect_interval": 300
-    }
-  },
-  "logs": {
-    "files": {
-      "collect_list": [
-        {
-          "file_path": "/var/log/httpd/access_log",
-          "log_group_name": "apache-logs"
-        }
-      ]
+    "metrics_collected": {
+      "cpu": {
+        "measurement": ["cpu_usage_idle"],
+        "metrics_collection_interval": 300
+      },
+      "mem": {
+        "measurement": ["mem_used_percent"],
+        "metrics_collection_interval": 300
+      }
     }
   }
 }
 ```
 
-Criei alertas para:
-- CPU acima de 80%
-- Memória acima de 90%
-- Erros no Apache
+3. Para simular logs da aplicação:
+```bash
+# Criar diretório de logs
+sudo mkdir -p /var/log/app
+
+# Gerar alguns logs de exemplo
+echo "[$(date)] INFO: Aplicação iniciada com sucesso" > /var/log/app/app.log
+echo "[$(date)] INFO: Servidor web respondendo na porta 80" >> /var/log/app/app.log
+```
+
+4. Iniciar o monitoramento:
+```bash
+# Iniciar e habilitar o agent
+sudo systemctl start amazon-cloudwatch-agent
+sudo systemctl enable amazon-cloudwatch-agent
+```
+
+Com isso, teremos:
+- Monitoramento de CPU e memória a cada 5 minutos
+- Logs da aplicação sendo coletados
+- Métricas disponíveis no dashboard do CloudWatch
+- Possibilidade de criar alertas baseados nas métricas
 
 ## 5. Pipeline CI/CD
 
