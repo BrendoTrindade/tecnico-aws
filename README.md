@@ -1,119 +1,50 @@
-# Teste Técnico DevOps
+# Teste Técnico AWS/DevOps
 
-Este repositório contém a implementação de uma infraestrutura AWS usando Terraform, seguindo as melhores práticas de DevOps.
-
-## Requisitos Atendidos
-
-1. **AWS Free Tier:**
-   - EC2: t2.micro para servidores web
-   - RDS: db.t3.micro para MySQL
-   - S3: armazenamento dentro do limite gratuito
-   - Outros serviços mantidos no free tier
-
-2. **Infraestrutura como Código:**
-   - Terraform para toda a infraestrutura
-   - Código organizado e documentado
-   - Recursos modulares e reutilizáveis
-
-3. **Documentação e GitHub:**
-   - Código versionado neste repositório
-   - Documentação detalhada
-   - Exemplos práticos de uso
-
-## Como Usar
-
-1. Clone o repositório:
-```bash
-git clone https://github.com/BrendoTrindade/tecinico-aws.git
-cd tecinico-aws
-```
-
-2. Configure suas credenciais AWS:
-```bash
-aws configure
-```
-
-3. Inicialize o Terraform:
-```bash
-cd terraform
-terraform init
-```
-
-4. Revise as mudanças:
-```bash
-terraform plan
-```
-
-5. Aplique a infraestrutura:
-```bash
-terraform apply
-```
+Este repositório contém a solução para o teste técnico de AWS/DevOps, focando em infraestrutura como código e boas práticas de DevOps.
 
 ## Estrutura do Projeto
 
 ```
 .
-├── terraform/
-│   ├── main.tf          # Recursos principais
-│   ├── variables.tf     # Variáveis
-│   └── outputs.tf       # Saídas
 ├── docs/
-│   └── respostas.md     # Respostas detalhadas
-└── README.md            # Este arquivo
+│   └── respostas.md     # Documentação detalhada das respostas
+├── terraform/
+│   ├── main.tf          # Configuração principal da infraestrutura
+│   └── variables.tf     # Definição das variáveis
+└── README.md
 ```
 
-## Recursos Criados
+## Questões Resolvidas
 
-1. **Rede:**
-   - VPC dedicada
-   - Subnets em duas AZs
-   - Internet Gateway
+1. **Infraestrutura AWS**: Configuração de EC2, RDS e S3 com políticas de segurança
+2. **IaC**: Load balancer distribuindo tráfego entre duas EC2s
+3. **Continuidade**: Plano de DR para falhas de região e AZ
+4. **Monitoramento**: Configuração do CloudWatch
 
-2. **Computação:**
-   - 2 EC2 t2.micro
-   - Load Balancer
-   - Auto Scaling Group
+## Como Usar
 
-3. **Banco de Dados:**
-   - RDS MySQL
-   - Multi-AZ para alta disponibilidade
-   - Backups automáticos
+1. Configure suas credenciais AWS
+2. Ajuste as variáveis em `terraform/variables.tf`:
+   - `meu_ip`: Seu IP para acesso SSH
+   - `rede_empresa`: CIDR da rede corporativa
+   - `bucket_name`: Nome desejado para o bucket S3
 
-4. **Armazenamento:**
-   - Bucket S3
-   - Versionamento
-   - Replicação para DR
-
-5. **Monitoramento:**
-   - CloudWatch Alarms
-   - Métricas de CPU/Memória
-   - Logs da aplicação
+3. Execute:
+```bash
+cd terraform
+terraform init
+terraform apply
+```
 
 ## Segurança
 
-- Acesso restrito por Security Groups
-- Banco de dados em subnet privada
-- S3 com políticas de acesso
-- Criptografia em repouso
+- EC2 acessível apenas via SSH com IP específico
+- HTTP permitido apenas da rede da empresa
+- RDS acessível apenas pela EC2
+- S3 com acesso restrito
 
-## Manutenção
+## Tecnologias Utilizadas
 
-Para atualizar a infraestrutura:
-```bash
-git pull                 # Atualiza código
-terraform plan          # Revisa mudanças
-terraform apply         # Aplica mudanças
-```
-
-Para destruir a infraestrutura:
-```bash
-terraform destroy      # Remove todos os recursos
-```
-
-## Contribuindo
-
-1. Fork o projeto
-2. Crie sua branch (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
+- AWS (EC2, RDS, S3, CloudWatch)
+- Terraform
+- Git
